@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Response, UploadFile, File, status, Form, BackgroundTasks
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from PIL import Image
 import cv2
@@ -10,6 +11,14 @@ url = "https://api.novita.ai"
 client = NovitaClient("6177bbc7-c152-4751-930b-258d523d513f", url)
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 def long_taking_task():
     import time
@@ -57,7 +66,7 @@ async def generate(background_tasks: BackgroundTasks, style: str = Form(), promp
     # res = long_taking_task()
 
     # response.status_code = status.HTTP_201_CREATED
-    return {"message": "success", "prompt": prompt, "res": task_id}
+    return {"message": "success", "prompt": prompt, "task_id": task_id}
 
 @app.get("/progress/{task_id}")
 async def progress(task_id: str):
