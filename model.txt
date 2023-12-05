@@ -1,0 +1,3 @@
+<lora:XSarchitectural-38InteriorForBedroom:0.8> <lora:XSarchitectural-36ChineseInteriorDecoration:0.4>
+"sd_name": "XSarchitectural-38InteriorForBedroom_36660",
+"download_name": "XSarchitectural-38InteriorForBedroom_36660.safetensors",
