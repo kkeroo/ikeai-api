@@ -6,6 +6,7 @@ import cv2
 import numpy as np
 from novita_client import NovitaClient, Img2ImgRequest, Samplers, ModelType, save_image, ProgressResponseStatusCode
 from novita_client.utils import read_image_to_base64, image_to_base64
+from style_prompts import STYLE_PROMPTS, NEGATIVE_PROMPT
 
 url = "https://api.novita.ai"
 client = NovitaClient("6177bbc7-c152-4751-930b-258d523d513f", url)
@@ -25,15 +26,15 @@ def long_taking_task():
     time.sleep(10)
     return 40
 
-async def img2img_api(image: Image):
+async def img2img_api(image: Image, positive_prompt: str, negative_prompt: str):
     req = Img2ImgRequest(
         model_name="dvarchMultiPrompt_dvarchExterior_28334.safetensors",
-        prompt="((white couch)), white carpet, latino style",
-        negative_prompt="(brown couch), (brown carpet), bad, ugly, terrible",
+        prompt=positive_prompt,
+        negative_prompt=negative_prompt,
         height=512,
         width=768,
         sampler_name=Samplers.DPMPP_S_A_KARRAS,
-        cfg_scale=11.5,
+        cfg_scale=9.5,
         steps=30,
         batch_size=2,
         seed=-1,
@@ -54,15 +55,21 @@ def read_root():
 
 
 @app.post("/generate")
-async def generate(background_tasks: BackgroundTasks, style: str = Form(), prompt: str = Form(), image: UploadFile = File(...)):
+async def generate(background_tasks: BackgroundTasks, style: str = Form(), positive_prompt: str = Form(), negative_prompt: str = Form(), image: UploadFile = File(...)):
     contents = await image.read()
     nparr = np.fromstring(contents, np.uint8)
     image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     image = Image.fromarray(image)
     
-    task_id = await img2img_api(image)
+    style_prompt = STYLE_PROMPTS[style]
+    prompt = f"((interior design)), {style_prompt}, {positive_prompt}"
+    negative_prompt = f"{NEGATIVE_PROMPT}, {negative_prompt}"
+    
+    task_id = await img2img_api(image, prompt, negative_prompt)
     background_tasks.add_task(check_progress, task_id)
+
+
     # res = long_taking_task()
 
     # response.status_code = status.HTTP_201_CREATED
