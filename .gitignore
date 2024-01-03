@@ -154,3 +154,8 @@ cython_debug/
 /test_images
 
 .DS_Store
+
+seg.png
+t.txt
+sam_vit_b.pth
+mask.png

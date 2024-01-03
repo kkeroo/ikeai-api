@@ -6,7 +6,10 @@ You need python and pip. It is also recommended that you use virtual environment
 ```source venv/bin/activate```\
 \
 and then install all packages with:\
-```pip install -r requirements.txt```
+```pip install -r requirements.txt```\
+\
+You will also need to download SAM model weights [here](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth)\
+and create .env file where you paste API_KEY="NOVITA API KEY"
 
 ## Running
 To run the server:\
