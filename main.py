@@ -1,11 +1,10 @@
 from fastapi import FastAPI, Request, UploadFile, File, Form, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 from PIL import Image
 import cv2
 import numpy as np
 from dotenv import dotenv_values
-from novita_client import NovitaClient, Img2ImgRequest, Samplers, ModelType, save_image, ProgressResponseStatusCode, ReplaceObjectRequest
+from novita_client import NovitaClient, Img2ImgRequest, Samplers, ProgressResponseStatusCode
 from novita_client.utils import read_image_to_base64, image_to_base64
 from style_prompts import STYLE_PROMPTS, NEGATIVE_PROMPT
 import json
@@ -37,20 +36,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-async def replace_api(image, xmin, ymin, xmax, ymax, prompt):
-    mask_predictor.set_image(image)
-    masks, scores, logits = mask_predictor.predict(
-        box=np.array([xmin, ymin, xmax, ymax]),
-        multimask_output=True
-    )
-    mask = masks[0].astype('uint8')
+async def replace_api(image, xmin, ymin, xmax, ymax, prompt, segment):
+    mask = None
+    if segment:
+        mask_predictor.set_image(image)
+        masks, scores, logits = mask_predictor.predict(
+            box=np.array([xmin, ymin, xmax, ymax]),
+            multimask_output=True
+        )
+        mask = masks[0].astype('uint8')
+    else:
+        mask = np.zeros((image.shape[0], image.shape[1]))
+        mask[ymin:ymax, xmin:xmax] = 1
     kernel_size = 15
     mask = cv2.dilate(mask, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size)))
     mask = cv2.cvtColor(mask.astype(np.uint8) * 255, cv2.COLOR_GRAY2BGR)
     image= cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     alpha = 0.5
     result = cv2.addWeighted(image, 1 - alpha, mask, alpha, 0)
-
+    cv2.imwrite('seg.png', result)
     # Encode into base64
     _, mask = cv2.imencode('.png', mask)
     _, image = cv2.imencode('.png', image)
@@ -131,7 +135,7 @@ async def design(background_tasks: BackgroundTasks, style: str = Form(), positiv
     return {"message": "success", "prompt": prompt, "task_id": task_id}
 
 @app.post('/replace')
-async def replace(background_tasks: BackgroundTasks, marker: str = Form(...), canvasWidth: str = Form(), canvasHeight: str = Form(), prompt: str = Form(), image: UploadFile = File(...)):
+async def replace(background_tasks: BackgroundTasks, marker: str = Form(...), canvasWidth: str = Form(), canvasHeight: str = Form(), prompt: str = Form(), segment: bool = Form(), image: UploadFile = File(...)):
     contents = await image.read()
     nparr = np.fromstring(contents, np.uint8)
     image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
@@ -142,12 +146,12 @@ async def replace(background_tasks: BackgroundTasks, marker: str = Form(...), ca
     image_height = image.shape[0]
     w_ratio = image_width / int(canvasWidth)
     h_ratio = image_height / int(canvasHeight)
-    xmin = int(float(marker['left']) * w_ratio)
-    ymin = int(float(marker['top']) * h_ratio)
-    xmax = int((float(marker['left']) + float(marker['width'])) * w_ratio)
-    ymax = int((float(marker['top']) + float(marker['height'])) * h_ratio)
+    xmin = max(0, int(float(marker['left']) * w_ratio))
+    ymin = max(0, int(float(marker['top']) * h_ratio))
+    xmax = min(int((float(marker['left']) + float(marker['width'])) * w_ratio), image.shape[1])
+    ymax = min(int((float(marker['top']) + float(marker['height'])) * h_ratio), image.shape[0])
 
-    task_id = await replace_api(image, xmin, ymin, xmax, ymax, prompt)
+    task_id = await replace_api(image, xmin, ymin, xmax, ymax, prompt, segment)
     background_tasks.add_task(check_progress, task_id)
 
     return {"message": "success", "task_id": task_id}
