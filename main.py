@@ -98,7 +98,7 @@ async def img2img_api(image: Image, positive_prompt: str, negative_prompt: str):
         cfg_scale=9.5,
         steps=30,
         batch_size=2,
-        seed=-1,
+        seed=639,
         # init_images=[read_image_to_base64("couch.jpg")]
         init_images=[image_to_base64(image)]
     )
