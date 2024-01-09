@@ -9,7 +9,7 @@ This project was developed during the course **Interaction and Information Desig
 API uses Stable Diffusion to generate stunning images. Stable Diffusion model is not run on your machine instead it is outsourced to the [Novita.ai API](https://novita.ai). In order to run the backend service you need Novita.ai API KEY. Please paste the API KEY in the .env file. Sample env file (called *.sample_env*) is present in the repository. Copy this file and rename it to .env. To generate even better results *[Segment-Anything Model](https://segment-anything.com)* is added to segment any object in the area. You will need to download pre-trained SAM model weights (more on that in Installation section)
 
 ### Instalation
-Since the frontend is built using FastAPI you need python and pip installed on your machine. PyTorch and Torchvision packages are included in *requirements.txt* file.
+Since the backend is built using FastAPI you need python and pip installed on your machine. PyTorch and Torchvision packages are included in *requirements.txt* file.
 1. Clone the repository
 2. Move to the project's root folder
 3. (*OPTIONAL*) Create virtual environment `python3 -m venv venv`
